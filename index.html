@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tic Tac Toe 3D Neon – Poki Ready</title>
+  <!-- When Poki provides the SDK, paste just before </body>:
+  <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+  -->
+  <style>
+    :root{
+      --bg:#0b0f23;
+      --bg-2:#14183a;
+      --card:#141939;
+      --panel:#0f1433;
+      --accent:#7c5cff;
+      --accent-2:#2dd4bf;
+      --text:#eaf0ff;
+      --muted:#9aa7ff;
+      --x:#60a5fa;
+      --o:#f87171;
+      --win:#22c55e;
+      --draw:#f59e0b;
+      --shadow:0 18px 40px rgba(0,0,0,.55);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 10% 10%, var(--bg-2), var(--bg)) fixed;
+      color:var(--text); display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .app{ width:min(1100px,100%); display:grid; gap:18px; grid-template-columns:1fr; }
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .title{ display:flex; align-items:center; gap:12px; }
+    .logo{ width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow:var(--shadow); font-weight:800; text-transform:lowercase; }
+    .title h1{ margin:0; font-size: clamp(20px, 4vw, 28px); letter-spacing:.5px; }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; }
+    .select, .btn{
+      background:var(--panel); border:1px solid rgba(255,255,255,.06); color:var(--text);
+      padding:10px 14px; border-radius:999px; box-shadow:var(--shadow);
+    }
+    .select{ appearance:none; cursor:pointer; }
+    .btn{ cursor:pointer; font-weight:700; letter-spacing:.2px; }
+    .btn:hover, .select:focus{ outline:2px solid rgba(124,92,255,.25); }
+    .board-wrap{ display:grid; grid-template-columns: 400px 1fr; gap:18px; align-items:start; }
+    @media (max-width: 980px){ .board-wrap{ grid-template-columns: 1fr; } }
+    .board{ background:var(--card); padding:18px; border-radius:var(--radius); box-shadow:var(--shadow); position:relative; }
+    .grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; width:100%; aspect-ratio:1/1; }
+    .cell{
+      background: linear-gradient(180deg, #1a1f47, #0f1433);
+      border:1px solid rgba(255,255,255,.08); border-radius:16px; display:grid; place-items:center;
+      font-size: clamp(40px, 9vw, 72px); font-weight:900; cursor:pointer; user-select:none; position:relative;
+      box-shadow: inset 0 2px 8px rgba(255,255,255,.05), inset 0 -8px 18px rgba(0,0,0,.65), 0 12px 30px rgba(0,0,0,.55);
+      transition: transform .12s ease, box-shadow .25s ease, filter .2s ease, opacity .2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .cell:hover{ transform: translateY(-4px); box-shadow: 0 18px 36px rgba(0,0,0,.55); }
+    .cell.disabled { pointer-events:none; opacity:.75; }
+    .cell.X{ color:var(--x); text-shadow: 0 0 6px #3b82f6, 0 0 22px #1d4ed8; }
+    .cell.O{ color:var(--o); text-shadow: 0 0 6px #ef4444, 0 0 22px #b91c1c; }
+    .panel{ background:var(--card); padding:18px; border-radius:var(--radius); box-shadow:var(--shadow); display:grid; gap:14px; }
+    .scores{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; }
+    .score{ background:#0e1436; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:16px; text-align:center; }
+    .score h3{ margin:0; font-size:14px; color:var(--muted); font-weight:700; }
+    .score .val{ margin-top:6px; font-size:28px; font-weight:900; }
+    .row{ display:flex; gap:10px; align-items:center; justify-content:space-between; margin-top:12px; }
+    .badges{ display:flex; gap:8px; flex-wrap:wrap; }
+    .badge{ padding:6px 10px; border-radius:999px; background:#0e1436; border:1px solid rgba(255,255,255,.06); font-size:12px; }
+    .status{ font-size: clamp(16px, 2.5vw, 18px); color: var(--muted); }
+    .status strong{ color:var(--text) }
+    .win-pulse{ animation: winPulse 1s ease-in-out infinite alternate; }
+    @keyframes winPulse{ from{ box-shadow:0 0 16px var(--win), inset 0 0 12px var(--win); transform: scale(1.03);} to{ box-shadow:0 0 34px var(--win), inset 0 0 20px var(--win); transform: scale(1.12);} }
+    .lose-fade{ filter: grayscale(.4); opacity:.55; }
+    .draw-shake{ animation: drawShake .6s ease-in-out 0s 2; }
+    @keyframes drawShake{
+      0%{ transform:translateX(0) }
+      25%{ transform:translateX(-10px) }
+      50%{ transform:translateX(10px) }
+      75%{ transform:translateX(-10px) }
+      100%{ transform:translateX(0) }
+    }
+    .status-pop{ animation: statusPop .8s ease; }
+    @keyframes statusPop{ 0%{ transform: scale(.9); opacity:.6 } 60%{ transform: scale(1.06); opacity:1 } 100%{ transform: scale(1) } }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Tic Tac Toe game">
+    <div class="header">
+      <div class="title">
+        <div class="logo">xo</div>
+        <h1>Tic Tac Toe 3D</h1>
+      </div>
+      <div class="controls">
+        <select class="select" id="mode" aria-label="Game mode">
+          <option value="pvp">2 Players</option>
+          <option value="ai">Vs Computer</option>
+        </select>
+        <select class="select" id="difficulty" aria-label="AI difficulty">
+          <option value="easy">AI: Easy</option>
+          <option value="hard" selected>AI: Hard</option>
+        </select>
+        <button class="btn" id="newGame">New Game</button>
+        <button class="btn" id="resetScores">Reset Scores</button>
+      </div>
+    </div>
+    <div class="board-wrap">
+      <section class="board" id="board" aria-live="polite">
+        <div class="grid" id="grid" role="grid" aria-label="3 by 3 tic tac toe board"></div>
+        <div class="row">
+          <div class="status" id="status">Player <strong>X</strong>'s turn</div>
+          <div class="badges">
+            <span class="badge" id="modeBadge">Mode: PvP</span>
+            <span class="badge" id="diffBadge">Hard</span>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="scores" aria-label="scoreboard">
+          <div class="score"><h3>Player X</h3><div class="val" id="scoreX">0</div></div>
+          <div class="score"><h3>Draws</h3><div class="val" id="scoreD">0</div></div>
+          <div class="score"><h3>Player O</h3><div class="val" id="scoreO">0</div></div>
+        </div>
+        <div class="badge">Poki-ready: ads handled by Poki, no in-game ad boxes</div>
+      </section>
+    </div>
+  </div>
+  <script>
+    // Poki helpers with safe fallbacks (no-op when SDK not present)
+    const Poki = {
+      _sdk: null,
+      async init(){
+        try{
+          if(window.PokiSDK && !this._sdk){
+            this._sdk = await window.PokiSDK.init();
+          }
+        }catch(e){/* local dev */}
+      },
+      async commercialBreak(){
+        if(this._sdk && window.pokiSDK && pokiSDK.commercialBreak){
+          try{ await pokiSDK.commercialBreak(); }catch(e){}
+        } else {
+          await new Promise(r=>setTimeout(r, 250));
+        }
+      },
+      gameplayStart(){ try{ if(window.pokiSDK?.gameplayStart) pokiSDK.gameplayStart(); }catch(e){} },
+      gameplayStop(){ try{ if(window.pokiSDK?.gameplayStop) pokiSDK.gameplayStop(); }catch(e){} }
+    };
+    Poki.init();
+
+    // Game state and elements
+    const gridEl = document.getElementById('grid');
+    const statusEl = document.getElementById('status');
+    const boardEl = document.getElementById('board');
+    const scoreXEl = document.getElementById('scoreX');
+    const scoreOEl = document.getElementById('scoreO');
+    const scoreDEl = document.getElementById('scoreD');
+    const modeEl = document.getElementById('mode');
+    const difficultyEl = document.getElementById('difficulty');
+    const modeBadge = document.getElementById('modeBadge');
+    const diffBadge = document.getElementById('diffBadge');
+
+    const newGameBtn = document.getElementById('newGame');
+    const resetScoresBtn = document.getElementById('resetScores');
+
+    let board = Array(9).fill(null);
+    let current = 'X';
+    let gameOver = false;
+    let scores = { X: 0, O: 0, D: 0 };
+
+    const POKI_BREAK_ON_EACH_ROUND = true;
+
+    // Load scores
+    (function loadScores(){
+      try{ const s = JSON.parse(localStorage.getItem('ttt_scores')); if(s){ scores = s; renderScores(); } }catch(e){}
+    })();
+    function saveScores(){ localStorage.setItem('ttt_scores', JSON.stringify(scores)); }
+
+    function buildGrid(){
+      gridEl.innerHTML = '';
+      for(let i=0;i<9;i++){
+        const btn = document.createElement('button');
+        btn.className = 'cell';
+        btn.setAttribute('role','gridcell');
+        btn.setAttribute('aria-label', `Cell ${i+1}`);
+        btn.dataset.idx = i;
+        btn.addEventListener('click', onCellClick);
+        btn.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); btn.click(); }});
+        gridEl.appendChild(btn);
+      }
+      updateUI();
+    }
+
+    function glyphClass(mark){ return mark ? mark : ''; }
+
+    function onCellClick(e){
+      Poki.gameplayStart();
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      if(gameOver || board[idx]) return;
+      makeMove(idx, current);
+      const mode = modeEl.value;
+      if(!gameOver && mode === 'ai' && current === 'O'){
+        setTimeout(aiMove, 250);
+      }
+    }
+
+    function makeMove(index, player){
+      board[index] = player;
+      updateUI();
+      const win = checkWinner(board);
+      if(win){ endGame(win); return; }
+      if(board.every(Boolean)) { endGame('D'); return; }
+      current = current === 'X' ? 'O' : 'X';
+      statusEl.innerHTML = `Player <strong>${current}</strong>'s turn`;
+    }
+
+    function updateUI(){
+      [...gridEl.children].forEach((cell, i)=>{
+        cell.textContent = board[i] || '';
+        cell.className = 'cell ' + glyphClass(board[i]);
+        cell.classList.toggle('disabled', Boolean(board[i]) || gameOver);
+      });
+      modeBadge.textContent = 'Mode: ' + (modeEl.value === 'ai' ? 'Vs AI' : 'PvP');
+      diffBadge.textContent = difficultyEl.value === 'hard' ? 'Hard' : 'Easy';
+    }
+
+    const LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    function checkWinner(b){
+      for(const [a,b2,c] of LINES){ if(b[a] && b[a]===b[b2] && b[a]===b[c]) return b[a]; }
+      return null;
+    }
+
+    async function endGame(result){
+      gameOver = true;
+      let winLine = null;
+      for(const combo of LINES){ const[a,b2,c]=combo; if(board[a]&&board[a]===board[b2]&&board[a]===board[c]){ winLine=combo; break; } }
+
+      if(result==='D'){
+        statusEl.innerHTML = `Result: <strong style="color:var(--draw)">Draw</strong>`;
+        boardEl.classList.add('draw-shake');
+        scores.D++; saveScores(); renderScores();
+      } else {
+        statusEl.innerHTML = `Winner: <strong style="color:var(--win)">${result}</strong>`;
+        if(winLine){
+          [...gridEl.children].forEach((c,i)=>{
+            if(winLine.includes(i)) c.classList.add('win-pulse'); else c.classList.add('lose-fade');
+          });
+        }
+        scores[result]++; saveScores(); renderScores();
+      }
+      statusEl.classList.add('status-pop');
+      [...gridEl.children].forEach(c=> c.classList.add('disabled'));
+      Poki.gameplayStop();
+      if(POKI_BREAK_ON_EACH_ROUND) await Poki.commercialBreak();
+    }
+
+    function newGame(){
+      board = Array(9).fill(null);
+      current = 'X';
+      gameOver = false;
+      boardEl.classList.remove('draw-shake');
+      statusEl.classList.remove('status-pop');
+      [...gridEl.children].forEach(c=>{ c.className='cell'; c.textContent=''; });
+      updateUI();
+      statusEl.innerHTML = `Player <strong>${current}</strong>'s turn`;
+      Poki.gameplayStart();
+    }
+
+    newGameBtn.addEventListener('click', newGame);
+    resetScoresBtn.addEventListener('click', ()=>{ scores={X:0,O:0,D:0}; renderScores(); saveScores(); });
+    modeEl.addEventListener('change', ()=>{ newGame(); updateUI(); });
+    difficultyEl.addEventListener('change', ()=>{ updateUI(); });
+
+    function renderScores(){ scoreXEl.textContent=scores.X; scoreOEl.textContent=scores.O; scoreDEl.textContent=scores.D; }
+
+    // ---------- AI ----------
+    function aiMove(){
+      const diff = difficultyEl.value;
+      let move;
+      if(diff === 'easy'){
+        if(Math.random() < 0.6){ move = randomMove(board); }
+        if(move == null){ move = bestMove(board, 'O'); }
+      } else { move = bestMove(board, 'O'); }
+      if(move != null){ makeMove(move, 'O'); }
+    }
+
+    function randomMove(b){
+      const empty = b.map((v,i)=>v?null:i).filter(v=>v!=null);
+      if(!empty.length) return null;
+      return empty[Math.floor(Math.random()*empty.length)];
+    }
+
+    function bestMove(b, ai){
+      let best=-Infinity, move=null;
+      for(let i=0;i<9;i++){
+        if(!b[i]){
+          b[i]=ai;
+          const score = minimax(b, 0, false, ai);
+          b[i]=null;
+          if(score>best){ best=score; move=i; }
+        }
+      }
+      return move;
+    }
+
+    function minimax(b, depth, isMax, ai){
+      const human = ai==='X' ? 'O' : 'X';
+      const win = checkWinner(b);
+      if(win===ai) return 10-depth;
+      if(win===human) return depth-10;
+      if(b.every(Boolean)) return 0;
+
+      if(isMax){
+        let best=-Infinity;
+        for(let i=0;i<9;i++){
+          if(!b[i]){
+            b[i]=ai;
+            best = Math.max(best, minimax(b, depth+1, false, ai));
+            b[i]=null;
+          }
+        }
+        return best;
+      } else {
+        let best=Infinity;
+        for(let i=0;i<9;i++){
+          if(!b[i]){
+            b[i]=human;
+            best = Math.min(best, minimax(b, depth+1, true, ai));
+            b[i]=null;
+          }
+        }
+        return best;
+      }
+    }
+
+    // Start game
+    buildGrid();
+  </script>
+  <!-- Poki SDK goes here when provided:
+  <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+  -->
+</body>
+</html>
